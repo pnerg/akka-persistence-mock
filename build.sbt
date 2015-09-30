@@ -2,7 +2,9 @@ name := "akka-persistence-mock"
 organization := "org.dmonix.akka"
 version := "1.0-SNAPSHOT"
 
-scalaVersion := "2.11.4"
+scalaVersion := "2.11.6"
+
+val akkaVersion = "2.4-M3"
 
 
 scalacOptions <++= scalaVersion map { (v: String) => 
@@ -17,7 +19,13 @@ scalacOptions in (Compile, doc) ++= Seq("-doc-title", "Akka Persistence Mock API
 scalacOptions in (Compile, doc) ++= Seq("-doc-footer", "Copyright (c) 2015 Peter Nerg, Apache License v2.0.")
 
 libraryDependencies ++= Seq(
-  "org.dmonix.functional" % "java-scala-utils" % "1.5",
+  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+  "com.typesafe.akka" %% "akka-remote" % akkaVersion,
+  "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
+  "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
+  "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
+  "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
+  "org.slf4j" % "slf4j-log4j12" % "1.7.5",
   "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test"
 )
 
