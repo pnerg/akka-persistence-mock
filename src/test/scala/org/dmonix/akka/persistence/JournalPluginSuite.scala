@@ -15,10 +15,7 @@
  */
 package org.dmonix.akka.persistence
 
-import akka.persistence.snapshot.SnapshotStoreSpec
+import akka.persistence.journal.JournalSpec
 import com.typesafe.config.ConfigFactory
 
-/**
- * @author Peter Nerg
- */
-class SnapshotStorePluginSuite extends SnapshotStoreSpec(PersistenceSuiteTrait.config())
+class JournalPluginSuite extends JournalSpec(PersistenceSuiteTrait.config())
