@@ -15,21 +15,40 @@
  */
 package org.dmonix.akka.persistence
 
-import scala.concurrent.{ExecutionContext,Future}
-import akka.persistence.{SelectedSnapshot,SnapshotMetadata,SnapshotSelectionCriteria}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.collection.mutable.HashMap
+import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import akka.persistence.snapshot.SnapshotStore
+
+/**
+ * Represents a stored snapshot.
+ * @constructor Creates a new instance of this persisted snapshot.
+ * @param sequenceNr the sequence number for when the snapshot was taken
+ * @param state is data for the snapshot, can be anything.
+ * @param timestamp the time stamp for when the snapshot was taken
+ */
+case class PersistedSnap(sequenceNr: Long, timestamp: Long, state: Any)
 
 /**
  * @author Peter Nerg
  */
 class SnapshotStorePlugin extends SnapshotStore {
 
+  implicit val ec = ExecutionContext.global
+
+  /** stores persistenceId -> Snapshot*/
+  val snapshots = HashMap[String, PersistedSnap]()
+
   def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
     ???
   }
 
   def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
-    ???
+    Future {
+      log.debug("Save [{}] [{}]", metadata, snapshot)
+      //simply overwrites any snapshot for the persistenceId/company
+      snapshots.put(metadata.persistenceId, PersistedSnap(metadata.sequenceNr, metadata.timestamp, snapshot))
+    }
   }
 
   def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {

@@ -24,7 +24,7 @@ import akka.persistence.journal.{ AsyncRecovery, AsyncWriteJournal }
 /**
  * @author Peter Nerg
  */
-class JournalPlugin {
+class JournalPlugin extends AsyncWriteJournal with AsyncRecovery {
 
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
     ???
