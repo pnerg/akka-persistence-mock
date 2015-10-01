@@ -26,21 +26,29 @@ import akka.persistence.journal.{ AsyncRecovery, AsyncWriteJournal }
  */
 class JournalPlugin extends AsyncWriteJournal with AsyncRecovery {
 
+  implicit val ec = ExecutionContext.global
+
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
-    ???
+    Future {
+      List()
+    }
   }
 
   def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = {
-    ???
+    Future {
+    }
   }
 
   def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long,
                           max: Long)(recoveryCallback: PersistentRepr ⇒ Unit): Future[Unit] = {
 
-    ???
+    Future {
+    }
   }
 
   def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] = {
-    ???
+    Future {
+      0
+    }
   }
 }

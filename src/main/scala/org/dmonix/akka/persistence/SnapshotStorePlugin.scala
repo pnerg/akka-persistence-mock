@@ -40,7 +40,9 @@ class SnapshotStorePlugin extends SnapshotStore {
   val snapshots = HashMap[String, PersistedSnap]()
 
   def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
-    ???
+    Future {
+      None
+    }
   }
 
   def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
@@ -52,14 +54,17 @@ class SnapshotStorePlugin extends SnapshotStore {
   }
 
   def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {
-    ???
+    Future{
+    }
   }
 
   def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
-    ???
+    Future{
+    }
   }
 
   private def deleteSnapshot(persistenceId: String): Future[Unit] = {
-    ???
+    Future{
+    }
   }
 }

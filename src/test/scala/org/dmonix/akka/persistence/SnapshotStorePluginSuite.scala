@@ -25,8 +25,6 @@ import org.scalatest.Matchers
 import akka.testkit.ImplicitSender
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.WordSpecLike
-import akka.persistence.PersistentActor
-import akka.actor.ActorLogging
 
 object SnapshotStorePluginSuiteHelper {
   val config = ConfigFactory.parseString(
@@ -47,17 +45,6 @@ object SnapshotStorePluginSuiteHelper {
          akka.actor.debug.receive = on""")
 }
 
-class MockPersistentActor() extends PersistentActor with ActorLogging {
-  override def persistenceId = "xxx"
-
-  val receiveRecover: Receive = {
-    case x: Any => log.warning("Unexpected message [{}] [{}]", x)
-  }
-
-  val receiveCommand: Receive = {
-    case x: Any => log.warning("Unexpected message [{}] [{}]", x)
-  }
-}
 /**
  * @author Peter Nerg
  */
@@ -69,12 +56,12 @@ class SnapshotStorePluginSuite extends TestKit(ActorSystem("SnapshotStorePluginS
   // Makes sure that the actor system is shut down.
   override def afterAll() { system.terminate() }
 
-  val snapshotStore = system.actorOf(Props(new MockPersistentActor))
+  val time = System.currentTimeMillis()
+  val account = system.actorOf(AccountActor.props(String.valueOf(time)), "AccountActor-"+time)
 
-  "ServiceInvoker" should {
+  "SnapshotStorePlugin" should {
     "Test to save snapshot" in {
-      //    val meta = SnapshotMetadata("1", 1, System.currentTimeMillis())
-      //    snapshotStorePlugin.saveAsync(meta, "XXXXX")
+        account ! Snap
     }
   }
 
