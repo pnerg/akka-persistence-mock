@@ -24,7 +24,7 @@ import scala.collection.mutable.HashMap
 import akka.actor.ActorLogging
 import scala.collection.mutable.MutableList
 
-case class PersistedJournal(sequenceNr: Long, msg: Any)
+case class PersistedJournal(sequenceNr: Long, manifest: String, writerUuid: String, msg: Any)
 
 class JournalStash {
 
@@ -34,8 +34,9 @@ class JournalStash {
     journals.+=(journal)
   }
 
-  def getOrdered = journals.sortWith((l, r) => l.sequenceNr > r.sequenceNr)
+  def getOrdered = journals.sortWith((l, r) => l.sequenceNr < r.sequenceNr)
 
+  def seqNumbers = journals.map(_.sequenceNr)
   //    def filter() {
   //      
   //    }
@@ -70,8 +71,9 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
     Future {
       messages.foreach(m => m.payload.foreach { p =>
-        log.debug("Persist event [" + p.persistenceId + "] [" + p.sequenceNr + "] [" + p.payload + "]")
-        storage.add(p.persistenceId, PersistedJournal(p.sequenceNr, p.payload))
+        log.debug("Persist event [{}]", p)
+        
+        storage.add(p.persistenceId, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
       })
       List()
     }
@@ -85,15 +87,28 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
   def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long,
                           max: Long)(recoveryCallback: PersistentRepr ⇒ Unit): Future[Unit] = {
 
+    log.debug("Replay ["+persistenceId+"] from ["+fromSequenceNr+"] to ["+toSequenceNr+"]")
+    
+    def replay(journal: PersistedJournal)  {
+      log.debug("Replay [{}] [{}]", persistenceId, journal)
+      recoveryCallback(PersistentRepr(journal.msg, journal.sequenceNr, persistenceId, journal.manifest, false, null, journal.writerUuid))
+    }
+    
     Future {
+      def inRange(value: Long) = value <= toSequenceNr && value >= fromSequenceNr
+      
+      storage.get(persistenceId).foreach(stash => {
+        stash.getOrdered.filter(j => inRange(j.sequenceNr)).foreach(j => replay(j))
+        //        stash.getOrdered.map(j => j.sequenceNr).filter(s => s >= fromSequenceNr).headOption
+      })
     }
   }
 
   def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] = {
-    log.debug("Read highest seqNr [{}] [{}]", persistenceId, fromSequenceNr)
+    log.debug("Read highest seqNr for id [{}] starting from [{}]", persistenceId, fromSequenceNr)
     Future {
-      storage.get(persistenceId).flatMap(stash => {
-        stash.getOrdered.map(j => j.sequenceNr).filter(s => s >= fromSequenceNr).headOption
+      storage.get(persistenceId).map(stash => {
+        stash.seqNumbers.filter(_ >= fromSequenceNr).foldLeft(0L)((l, r) => {if(l > r) l else r})
       }).getOrElse(0)
     }
   }
