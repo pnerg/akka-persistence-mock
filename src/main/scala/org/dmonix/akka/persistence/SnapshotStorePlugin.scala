@@ -41,6 +41,8 @@ class SnapshotStash {
     snapshots.values.filter(s => inRange(s.sequenceNr, c.minSequenceNr, c.maxSequenceNr)).filter(s => inRange(s.timestamp, c.minTimestamp, c.maxTimestamp))
   }
 
+  def delete(sequenceNr: Long) = snapshots.remove(sequenceNr) 
+  
   private def inRange(value: Long, min: Long, max: Long) = value >= min && value <= max
 }
 
@@ -92,12 +94,16 @@ class SnapshotStorePlugin extends SnapshotStore {
   }
 
   def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {
+//    SnapshotSelectionCriteria(metadata.sequenceNr, metadata.timestamp, me)
     Future {
     }
   }
 
   def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
     Future {
+      storage.get(persistenceId).foreach(stash => {
+        stash.select(criteria).foreach(snap => stash.delete(snap.sequenceNr))
+      })
     }
   }
 
