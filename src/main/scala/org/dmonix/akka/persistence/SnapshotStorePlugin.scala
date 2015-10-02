@@ -33,7 +33,6 @@ class SnapshotStash {
   val snapshots = HashMap[Long, PersistedSnap]()
 
   def add(snap: PersistedSnap) {
-    println("Store:"+snap)
     snapshots.put(snap.sequenceNr, snap)
   }
 
@@ -41,8 +40,8 @@ class SnapshotStash {
     snapshots.values.filter(s => inRange(s.sequenceNr, c.minSequenceNr, c.maxSequenceNr)).filter(s => inRange(s.timestamp, c.minTimestamp, c.maxTimestamp))
   }
 
-  def delete(sequenceNr: Long) = snapshots.remove(sequenceNr) 
-  
+  def delete(sequenceNr: Long) = snapshots.remove(sequenceNr)
+
   private def inRange(value: Long, min: Long, max: Long) = value >= min && value <= max
 }
 
@@ -50,7 +49,7 @@ class SnapshotStorage {
   /** stores persistenceId -> Snapshot*/
   val stashes = HashMap[String, SnapshotStash]()
 
-  def add(persistenceId: String, snap: PersistedSnap) {
+  def add(persistenceId: String, snap: PersistedSnap) = synchronized {
     stashes.get(persistenceId) match {
       case Some(stash) => stash.add(snap)
       case None => {
@@ -61,7 +60,7 @@ class SnapshotStorage {
     }
   }
 
-  def get(persistenceId: String) = stashes.get(persistenceId)
+  def get(persistenceId: String) = synchronized { stashes.get(persistenceId) }
 }
 
 /**
@@ -74,32 +73,35 @@ class SnapshotStorePlugin extends SnapshotStore {
   val storage = new SnapshotStorage
 
   def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
-    println("load:"+persistenceId+":"+criteria)
+    log.debug("Load [{}] [{}]", persistenceId, criteria)
     Future {
       //first find if there's a storage for the provided ID
       storage.get(persistenceId).flatMap(stash => {
-        val snap = stash.select(criteria).reduceLeftOption((l, r) => if (l.timestamp > r.timestamp) l else r)
-        
-        println("found:"+snap)
+        val snap = stash.select(criteria).reduceLeftOption((l, r) => if (l.sequenceNr > r.sequenceNr) l else r)
         snap.map(s => SelectedSnapshot(SnapshotMetadata(persistenceId, s.sequenceNr, s.timestamp), s.state))
       })
     }
   }
 
   def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
+    log.debug("Save [{}] [{}]", metadata, snapshot)
     Future {
-      log.debug("Save [{}] [{}]", metadata, snapshot)
       storage.add(metadata.persistenceId, PersistedSnap(metadata.sequenceNr, metadata.timestamp, snapshot))
     }
   }
 
   def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {
-    Future {
-      storage.get(metadata.persistenceId).foreach(stash => stash.delete(metadata.sequenceNr))
-    }
+    log.debug("Delete [{}]", metadata)
+    val minTs = metadata.timestamp
+    val maxTs = if(metadata.timestamp == 0) Long.MaxValue else metadata.timestamp
+    deleteAsync(metadata.persistenceId, SnapshotSelectionCriteria(metadata.sequenceNr, maxTs, metadata.sequenceNr, minTs))
+    //    Future {
+    //      storage.get(metadata.persistenceId).foreach(stash => stash.delete(metadata.sequenceNr, metadata.timestamp,metadata.sequenceNr, metadata.timestamp))
+    //    }
   }
 
   def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
+    log.debug("Delete [{}] [{}]", persistenceId, criteria)
     Future {
       storage.get(persistenceId).foreach(stash => {
         stash.select(criteria).foreach(snap => stash.delete(snap.sequenceNr))
