@@ -106,9 +106,4 @@ class SnapshotStorePlugin extends SnapshotStore {
       })
     }
   }
-
-  private def deleteSnapshot(persistenceId: String): Future[Unit] = {
-    Future {
-    }
-  }
 }
