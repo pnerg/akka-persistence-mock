@@ -47,7 +47,7 @@ class JournalStash {
 class JournalStorage {
   val stashes = HashMap[String, JournalStash]()
 
-  def add(persistenceId: String, journal: PersistedJournal) = synchronized {
+  def add(persistenceId: String, journal: PersistedJournal) = {
     stashes.get(persistenceId) match {
       case Some(stash) => stash.add(journal)
       case None => {
@@ -59,7 +59,7 @@ class JournalStorage {
 
   }
 
-  def get(persistenceId: String) = synchronized { stashes.get(persistenceId) }
+  def get(persistenceId: String) =  stashes.get(persistenceId)
 }
 
 /**
