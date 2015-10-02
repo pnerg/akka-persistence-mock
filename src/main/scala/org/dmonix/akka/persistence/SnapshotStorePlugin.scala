@@ -94,8 +94,8 @@ class SnapshotStorePlugin extends SnapshotStore {
   }
 
   def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {
-//    SnapshotSelectionCriteria(metadata.sequenceNr, metadata.timestamp, me)
     Future {
+      storage.get(metadata.persistenceId).foreach(stash => stash.delete(metadata.sequenceNr))
     }
   }
 
