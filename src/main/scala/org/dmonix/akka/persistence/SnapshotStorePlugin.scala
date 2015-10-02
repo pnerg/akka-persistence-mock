@@ -33,6 +33,7 @@ class SnapshotStash {
   val snapshots = HashMap[Long, PersistedSnap]()
 
   def add(snap: PersistedSnap) {
+    println("Store:"+snap)
     snapshots.put(snap.sequenceNr, snap)
   }
 
@@ -71,15 +72,14 @@ class SnapshotStorePlugin extends SnapshotStore {
   val storage = new SnapshotStorage
 
   def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
+    println("load:"+persistenceId+":"+criteria)
     Future {
-      def inRange(value: Long, min: Long, max: Long) = value >= min && value <= max
-
+      //first find if there's a storage for the provided ID
       storage.get(persistenceId).flatMap(stash => {
-        val snap = stash.select(criteria).reduceOption((l, r) => if (l.timestamp > r.timestamp) l else r)
-        snap.map(s => {
-          val snapshotMetadata = SnapshotMetadata(persistenceId, s.sequenceNr)
-          SelectedSnapshot(snapshotMetadata, s.state)
-        })
+        val snap = stash.select(criteria).reduceLeftOption((l, r) => if (l.timestamp > r.timestamp) l else r)
+        
+        println("found:"+snap)
+        snap.map(s => SelectedSnapshot(SnapshotMetadata(persistenceId, s.sequenceNr, s.timestamp), s.state))
       })
     }
   }
