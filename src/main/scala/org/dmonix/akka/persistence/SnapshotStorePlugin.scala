@@ -29,19 +29,28 @@ import akka.persistence.snapshot.SnapshotStore
  */
 case class PersistedSnap(sequenceNr: Long, timestamp: Long, state: Any)
 
+/**
+ * The snapshot stash containing all snapshots for a single persistenceId.
+ */
 class SnapshotStash {
   val snapshots = HashMap[Long, PersistedSnap]()
 
   def add(snap: PersistedSnap): Unit = snapshots.put(snap.sequenceNr, snap)
 
-  def select(c: SnapshotSelectionCriteria) =
-    snapshots.values.filter(s => inRange(s.sequenceNr, c.minSequenceNr, c.maxSequenceNr)).filter(s => inRange(s.timestamp, c.minTimestamp, c.maxTimestamp))
+  def select(c: SnapshotSelectionCriteria) = {
+    def seqNrInRange(seqNr: Long) = inRange(seqNr, c.minSequenceNr, c.maxSequenceNr)
+    def timeRange(seqNr: Long) = inRange(seqNr, c.minTimestamp, c.maxTimestamp)
+    snapshots.values.filter(s => seqNrInRange(s.sequenceNr)).filter(s => timeRange(s.timestamp))
+  }
 
   def delete(sequenceNr: Long): Unit = snapshots.remove(sequenceNr)
 
   private def inRange(value: Long, min: Long, max: Long) = value >= min && value <= max
 }
 
+/**
+ * Storage for all snapshot stashes
+ */
 class SnapshotStorage {
   /** stores persistenceId -> Snapshot*/
   val stashes = HashMap[String, SnapshotStash]()
@@ -74,7 +83,7 @@ class SnapshotStorePlugin extends SnapshotStore {
     Future {
       //first find if there's a storage for the provided ID
       storage.get(persistenceId).flatMap(stash => {
-        val snap = stash.select(criteria).reduceLeftOption((l, r) => if (l.sequenceNr > r.sequenceNr) l else r)
+        val snap = stash.select(criteria).reduceOption((l, r) => if (l.sequenceNr > r.sequenceNr) l else r)
         snap.map(s => SelectedSnapshot(SnapshotMetadata(persistenceId, s.sequenceNr, s.timestamp), s.state))
       })
     }
