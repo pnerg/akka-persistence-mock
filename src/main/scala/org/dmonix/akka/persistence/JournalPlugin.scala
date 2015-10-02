@@ -23,6 +23,9 @@ import akka.persistence.journal.{ AsyncRecovery, AsyncWriteJournal }
 import scala.collection.mutable.HashMap
 import akka.actor.ActorLogging
 import scala.collection.mutable.MutableList
+import scala.util.Success
+import scala.util.Failure
+import java.io.NotSerializableException
 
 case class PersistedJournal(sequenceNr: Long, manifest: String, writerUuid: String, msg: Any)
 
@@ -37,7 +40,7 @@ class JournalStash {
   def getOrdered = journals.valuesIterator.toIndexedSeq.sortWith((l, r) => l.sequenceNr < r.sequenceNr)
 
   def seqNumbers = journals.keys
-  
+
   def delete(sequenceNr: Long) = journals.remove(sequenceNr)
 }
 
@@ -68,13 +71,29 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
   val storage = new JournalStorage
 
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
+
+    def persist(p: PersistentRepr):Unit = {
+        if (p.payload.isInstanceOf[Serializable] || p.payload.isInstanceOf[java.io.Serializable]) {
+          storage.add(p.persistenceId, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
+        }
+        else {
+          throw new NotSerializableException
+        }
+    }
+    
     Future {
+      var response = List[Try[Unit]]()
       messages.foreach(m => m.payload.foreach { p =>
         log.debug("Persist event [{}]", p)
+
+        val t = Try {
+          persist(p)
+        }
         
-        storage.add(p.persistenceId, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
+        response = response :+ t
       })
-      List()
+      println(response)
+      response
     }
   }
 
@@ -89,15 +108,15 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
   def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long,
                           max: Long)(recoveryCallback: PersistentRepr ⇒ Unit): Future[Unit] = {
 
-    val maxInt = if(max.intValue < 0) Integer.MAX_VALUE else max.intValue 
-    log.debug("Replay ["+persistenceId+"] from ["+fromSequenceNr+"] to ["+toSequenceNr+"] using max ["+maxInt+"]")
-    
+    val maxInt = if (max.intValue < 0) Integer.MAX_VALUE else max.intValue
+    log.debug("Replay [" + persistenceId + "] from [" + fromSequenceNr + "] to [" + toSequenceNr + "] using max [" + maxInt + "]")
+
     // Replays the provided journal
-    def replay(journal: PersistedJournal)  {
+    def replay(journal: PersistedJournal) {
       log.debug("Replay [{}] [{}]", persistenceId, journal)
       recoveryCallback(PersistentRepr(journal.msg, journal.sequenceNr, persistenceId, journal.manifest, false, null, journal.writerUuid))
     }
-    
+
     Future {
       def inRange(value: Long) = value <= toSequenceNr && value >= fromSequenceNr
       storage.get(persistenceId).foreach(stash => {
@@ -110,7 +129,7 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
     log.debug("Read highest seqNr for id [{}] starting from [{}]", persistenceId, fromSequenceNr)
     Future {
       storage.get(persistenceId).map(stash => {
-        stash.seqNumbers.filter(_ >= fromSequenceNr).foldLeft(0L)((l, r) => {if(l > r) l else r})
+        stash.seqNumbers.filter(_ >= fromSequenceNr).foldLeft(0L)((l, r) => { if (l > r) l else r })
       }).getOrElse(0)
     }
   }
