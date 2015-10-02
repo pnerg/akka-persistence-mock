@@ -28,18 +28,17 @@ case class PersistedJournal(sequenceNr: Long, manifest: String, writerUuid: Stri
 
 class JournalStash {
 
-  val journals = new MutableList[PersistedJournal]()
+  val journals = new HashMap[Long, PersistedJournal]()
 
   def add(journal: PersistedJournal) {
-    journals.+=(journal)
+    journals.put(journal.sequenceNr, journal)
   }
 
-  def getOrdered = journals.sortWith((l, r) => l.sequenceNr < r.sequenceNr)
+  def getOrdered = journals.valuesIterator.toIndexedSeq.sortWith((l, r) => l.sequenceNr < r.sequenceNr)
 
-  def seqNumbers = journals.map(_.sequenceNr)
-  //    def filter() {
-  //      
-  //    }
+  def seqNumbers = journals.keys
+  
+  def delete(sequenceNr: Long) = journals.remove(sequenceNr)
 }
 
 class JournalStorage {
@@ -81,6 +80,9 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
 
   def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = {
     Future {
+      storage.get(persistenceId).foreach(stash => {
+        stash.seqNumbers.filter(_ <= toSequenceNr).foreach(stash.delete(_))
+      })
     }
   }
 
