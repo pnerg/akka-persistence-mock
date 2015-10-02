@@ -22,27 +22,38 @@ import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.persistence.journal.{ AsyncRecovery, AsyncWriteJournal }
 import scala.collection.mutable.HashMap
 import akka.actor.ActorLogging
+import scala.collection.mutable.MutableList
 
 case class PersistedJournal(sequenceNr: Long, msg: Any)
 
 class JournalStash {
-  def add(snap: PersistedJournal) {
+
+  val journals = new MutableList[PersistedJournal]()
+
+  def add(journal: PersistedJournal) {
+    journals.+=(journal)
   }
 
+  def getOrdered = journals.sortWith((l, r) => l.sequenceNr > r.sequenceNr)
+
+  //    def filter() {
+  //      
+  //    }
 }
 
 class JournalStorage {
   val stashes = HashMap[String, JournalStash]()
 
-  def add(persistenceId: String, snap: PersistedJournal) = synchronized {
+  def add(persistenceId: String, journal: PersistedJournal) = synchronized {
     stashes.get(persistenceId) match {
-      case Some(stash) => stash.add(snap)
+      case Some(stash) => stash.add(journal)
       case None => {
         val stash = new JournalStash
-        stash.add(snap)
+        stash.add(journal)
         stashes.put(persistenceId, stash)
       }
     }
+
   }
 
   def get(persistenceId: String) = synchronized { stashes.get(persistenceId) }
@@ -79,8 +90,11 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
   }
 
   def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] = {
+    log.debug("Read highest seqNr [{}] [{}]", persistenceId, fromSequenceNr)
     Future {
-      0
+      storage.get(persistenceId).flatMap(stash => {
+        stash.getOrdered.map(j => j.sequenceNr).filter(s => s >= fromSequenceNr).headOption
+      }).getOrElse(0)
     }
   }
 }
