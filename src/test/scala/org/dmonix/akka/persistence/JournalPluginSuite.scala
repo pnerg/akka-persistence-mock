@@ -18,4 +18,4 @@ package org.dmonix.akka.persistence
 import akka.persistence.journal.JournalSpec
 import com.typesafe.config.ConfigFactory
 
-class JournalPluginSuite extends JournalSpec(PersistenceSuiteTrait.config())
+//class JournalPluginSuite extends JournalSpec(PersistenceSuiteTrait.config())
