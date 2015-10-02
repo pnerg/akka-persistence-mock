@@ -98,7 +98,7 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
       def inRange(value: Long) = value <= toSequenceNr && value >= fromSequenceNr
       
       storage.get(persistenceId).foreach(stash => {
-        stash.getOrdered.filter(j => inRange(j.sequenceNr)).foreach(j => replay(j))
+        stash.getOrdered.filter(j => inRange(j.sequenceNr)).take(max.intValue()).foreach(j => replay(j))
         //        stash.getOrdered.map(j => j.sequenceNr).filter(s => s >= fromSequenceNr).headOption
       })
     }
