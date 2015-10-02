@@ -83,16 +83,12 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
     
     Future {
       var response = List[Try[Unit]]()
-      messages.foreach(m => m.payload.foreach { p =>
+      messages.foreach(_.payload.foreach { p =>
         log.debug("Persist event [{}]", p)
-
-        val t = Try {
+        response = response :+ Try {
           persist(p)
         }
-        
-        response = response :+ t
       })
-      println(response)
       response
     }
   }

@@ -32,15 +32,12 @@ case class PersistedSnap(sequenceNr: Long, timestamp: Long, state: Any)
 class SnapshotStash {
   val snapshots = HashMap[Long, PersistedSnap]()
 
-  def add(snap: PersistedSnap) {
-    snapshots.put(snap.sequenceNr, snap)
-  }
+  def add(snap: PersistedSnap): Unit = snapshots.put(snap.sequenceNr, snap)
 
-  def select(c: SnapshotSelectionCriteria) = {
+  def select(c: SnapshotSelectionCriteria) =
     snapshots.values.filter(s => inRange(s.sequenceNr, c.minSequenceNr, c.maxSequenceNr)).filter(s => inRange(s.timestamp, c.minTimestamp, c.maxTimestamp))
-  }
 
-  def delete(sequenceNr: Long) = snapshots.remove(sequenceNr)
+  def delete(sequenceNr: Long): Unit = snapshots.remove(sequenceNr)
 
   private def inRange(value: Long, min: Long, max: Long) = value >= min && value <= max
 }
@@ -49,7 +46,7 @@ class SnapshotStorage {
   /** stores persistenceId -> Snapshot*/
   val stashes = HashMap[String, SnapshotStash]()
 
-  def add(persistenceId: String, snap: PersistedSnap) = synchronized {
+  def add(persistenceId: String, snap: PersistedSnap) {
     stashes.get(persistenceId) match {
       case Some(stash) => stash.add(snap)
       case None => {
@@ -60,7 +57,7 @@ class SnapshotStorage {
     }
   }
 
-  def get(persistenceId: String) = synchronized { stashes.get(persistenceId) }
+  def get(persistenceId: String) = stashes.get(persistenceId)
 }
 
 /**
@@ -92,7 +89,7 @@ class SnapshotStorePlugin extends SnapshotStore {
 
   def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {
     log.debug("Delete [{}]", metadata)
-    val maxTs = if(metadata.timestamp == 0) Long.MaxValue else metadata.timestamp
+    val maxTs = if (metadata.timestamp == 0) Long.MaxValue else metadata.timestamp
     deleteAsync(metadata.persistenceId, SnapshotSelectionCriteria(metadata.sequenceNr, maxTs, metadata.sequenceNr, metadata.timestamp))
   }
 
