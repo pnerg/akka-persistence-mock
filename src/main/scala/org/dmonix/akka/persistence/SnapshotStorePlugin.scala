@@ -29,6 +29,38 @@ import akka.persistence.snapshot.SnapshotStore
  */
 case class PersistedSnap(sequenceNr: Long, timestamp: Long, state: Any)
 
+class SnapshotStash {
+  val snapshots = HashMap[Long, PersistedSnap]()
+
+  def add(snap: PersistedSnap) {
+    snapshots.put(snap.sequenceNr, snap)
+  }
+
+  def select(c: SnapshotSelectionCriteria) = {
+    snapshots.values.filter(s => inRange(s.sequenceNr, c.minSequenceNr, c.maxSequenceNr)).filter(s => inRange(s.timestamp, c.minTimestamp, c.maxTimestamp))
+  }
+
+  private def inRange(value: Long, min: Long, max: Long) = value >= min && value <= max
+}
+
+class SnapshotStorage {
+  /** stores persistenceId -> Snapshot*/
+  val stashes = HashMap[String, SnapshotStash]()
+
+  def add(persistenceId: String, snap: PersistedSnap) {
+    stashes.get(persistenceId) match {
+      case Some(stash) => stash.add(snap)
+      case None => {
+        val stash = new SnapshotStash
+        stash.add(snap)
+        stashes.put(persistenceId, stash)
+      }
+    }
+  }
+
+  def get(persistenceId: String) = stashes.get(persistenceId)
+}
+
 /**
  * @author Peter Nerg
  */
@@ -36,35 +68,41 @@ class SnapshotStorePlugin extends SnapshotStore {
 
   implicit val ec = ExecutionContext.global
 
-  /** stores persistenceId -> Snapshot*/
-  val snapshots = HashMap[String, PersistedSnap]()
+  val storage = new SnapshotStorage
 
   def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
     Future {
-      None
+      def inRange(value: Long, min: Long, max: Long) = value >= min && value <= max
+
+      storage.get(persistenceId).flatMap(stash => {
+        val snap = stash.select(criteria).reduceOption((l, r) => if (l.timestamp > r.timestamp) l else r)
+        snap.map(s => {
+          val snapshotMetadata = SnapshotMetadata(persistenceId, s.sequenceNr)
+          SelectedSnapshot(snapshotMetadata, s.state)
+        })
+      })
     }
   }
 
   def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
     Future {
       log.debug("Save [{}] [{}]", metadata, snapshot)
-      //simply overwrites any snapshot for the persistenceId/company
-      snapshots.put(metadata.persistenceId, PersistedSnap(metadata.sequenceNr, metadata.timestamp, snapshot))
+      storage.add(metadata.persistenceId, PersistedSnap(metadata.sequenceNr, metadata.timestamp, snapshot))
     }
   }
 
   def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {
-    Future{
+    Future {
     }
   }
 
   def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
-    Future{
+    Future {
     }
   }
 
   private def deleteSnapshot(persistenceId: String): Future[Unit] = {
-    Future{
+    Future {
     }
   }
 }
