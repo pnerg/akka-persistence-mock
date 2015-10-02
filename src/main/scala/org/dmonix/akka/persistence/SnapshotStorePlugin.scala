@@ -92,12 +92,8 @@ class SnapshotStorePlugin extends SnapshotStore {
 
   def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {
     log.debug("Delete [{}]", metadata)
-    val minTs = metadata.timestamp
     val maxTs = if(metadata.timestamp == 0) Long.MaxValue else metadata.timestamp
-    deleteAsync(metadata.persistenceId, SnapshotSelectionCriteria(metadata.sequenceNr, maxTs, metadata.sequenceNr, minTs))
-    //    Future {
-    //      storage.get(metadata.persistenceId).foreach(stash => stash.delete(metadata.sequenceNr, metadata.timestamp,metadata.sequenceNr, metadata.timestamp))
-    //    }
+    deleteAsync(metadata.persistenceId, SnapshotSelectionCriteria(metadata.sequenceNr, maxTs, metadata.sequenceNr, metadata.timestamp))
   }
 
   def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
