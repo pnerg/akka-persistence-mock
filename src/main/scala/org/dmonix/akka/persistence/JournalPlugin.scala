@@ -20,16 +20,48 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 import akka.persistence.{ AtomicWrite, PersistentRepr }
 import akka.persistence.journal.{ AsyncRecovery, AsyncWriteJournal }
+import scala.collection.mutable.HashMap
+import akka.actor.ActorLogging
+
+case class PersistedJournal(sequenceNr: Long, msg: Any)
+
+class JournalStash {
+  def add(snap: PersistedJournal) {
+  }
+
+}
+
+class JournalStorage {
+  val stashes = HashMap[String, JournalStash]()
+
+  def add(persistenceId: String, snap: PersistedJournal) = synchronized {
+    stashes.get(persistenceId) match {
+      case Some(stash) => stash.add(snap)
+      case None => {
+        val stash = new JournalStash
+        stash.add(snap)
+        stashes.put(persistenceId, stash)
+      }
+    }
+  }
+
+  def get(persistenceId: String) = synchronized { stashes.get(persistenceId) }
+}
 
 /**
  * @author Peter Nerg
  */
-class JournalPlugin extends AsyncWriteJournal with AsyncRecovery {
+class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLogging {
 
   implicit val ec = ExecutionContext.global
+  val storage = new JournalStorage
 
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
     Future {
+      messages.foreach(m => m.payload.foreach { p =>
+        log.debug("Persist event [" + p.persistenceId + "] [" + p.sequenceNr + "] [" + p.payload + "]")
+        storage.add(p.persistenceId, PersistedJournal(p.sequenceNr, p.payload))
+      })
       List()
     }
   }
