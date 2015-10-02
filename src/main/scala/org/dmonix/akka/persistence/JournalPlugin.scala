@@ -87,8 +87,10 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
   def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long,
                           max: Long)(recoveryCallback: PersistentRepr ⇒ Unit): Future[Unit] = {
 
-    log.debug("Replay ["+persistenceId+"] from ["+fromSequenceNr+"] to ["+toSequenceNr+"]")
+    val maxInt = if(max.intValue < 0) Integer.MAX_VALUE else max.intValue 
+    log.debug("Replay ["+persistenceId+"] from ["+fromSequenceNr+"] to ["+toSequenceNr+"] using max ["+maxInt+"]")
     
+    // Replays the provided journal
     def replay(journal: PersistedJournal)  {
       log.debug("Replay [{}] [{}]", persistenceId, journal)
       recoveryCallback(PersistentRepr(journal.msg, journal.sequenceNr, persistenceId, journal.manifest, false, null, journal.writerUuid))
@@ -96,10 +98,8 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
     
     Future {
       def inRange(value: Long) = value <= toSequenceNr && value >= fromSequenceNr
-      
       storage.get(persistenceId).foreach(stash => {
-        stash.getOrdered.filter(j => inRange(j.sequenceNr)).take(max.intValue()).foreach(j => replay(j))
-        //        stash.getOrdered.map(j => j.sequenceNr).filter(s => s >= fromSequenceNr).headOption
+        stash.getOrdered.filter(j => inRange(j.sequenceNr)).take(maxInt).foreach(j => replay(j))
       })
     }
   }
