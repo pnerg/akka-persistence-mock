@@ -48,7 +48,7 @@ class Account(balance: Integer) {
  * @author Peter Nerg
  */
 object AccountActor {
-  def props(id: String) = Props(new AccountActor(id))
+  def props(name: String) = Props(new AccountActor(name))
 }
 
 /**
