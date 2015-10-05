@@ -27,40 +27,40 @@ import scala.util.Success
 import scala.util.Failure
 import java.io.NotSerializableException
 
-case class PersistedJournal(sequenceNr: Long, manifest: String, writerUuid: String, msg: Any)
+case class PersistedJournal(sequenceNr: Long, manifest: String, writerUuid: String, msg: Any) extends PersistedState
 
-class JournalStash {
+//class JournalStash {
+//
+//  val journals = new HashMap[Long, PersistedJournal]()
+//
+//  def add(journal: PersistedJournal) {
+//    journals.put(journal.sequenceNr, journal)
+//  }
+//
+//  def getOrdered = journals.valuesIterator.toIndexedSeq.sortWith((l, r) => l.sequenceNr < r.sequenceNr)
+//
+//  def seqNumbers = journals.keys
+//
+//  def delete(sequenceNr: Long) = journals.remove(sequenceNr)
+//}
 
-  val journals = new HashMap[Long, PersistedJournal]()
-
-  def add(journal: PersistedJournal) {
-    journals.put(journal.sequenceNr, journal)
-  }
-
-  def getOrdered = journals.valuesIterator.toIndexedSeq.sortWith((l, r) => l.sequenceNr < r.sequenceNr)
-
-  def seqNumbers = journals.keys
-
-  def delete(sequenceNr: Long) = journals.remove(sequenceNr)
-}
-
-class JournalStorage {
-  val stashes = HashMap[String, JournalStash]()
-
-  def add(persistenceId: String, journal: PersistedJournal) = {
-    stashes.get(persistenceId) match {
-      case Some(stash) => stash.add(journal)
-      case None => {
-        val stash = new JournalStash
-        stash.add(journal)
-        stashes.put(persistenceId, stash)
-      }
-    }
-
-  }
-
-  def get(persistenceId: String) =  stashes.get(persistenceId)
-}
+//class JournalStorage {
+//  val stashes = HashMap[String, JournalStash]()
+//
+//  def add(persistenceId: String, journal: PersistedJournal) = {
+//    stashes.get(persistenceId) match {
+//      case Some(stash) => stash.add(journal)
+//      case None => {
+//        val stash = new JournalStash
+//        stash.add(journal)
+//        stashes.put(persistenceId, stash)
+//      }
+//    }
+//
+//  }
+//
+//  def get(persistenceId: String) =  stashes.get(persistenceId)
+//}
 
 /**
  * @author Peter Nerg
@@ -68,13 +68,13 @@ class JournalStorage {
 class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLogging {
 
   implicit val ec = ExecutionContext.global
-  val storage = new JournalStorage
+  val storage = new Storage[PersistedJournal]
 
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
 
     def persist(p: PersistentRepr):Unit = {
         if (p.payload.isInstanceOf[Serializable] || p.payload.isInstanceOf[java.io.Serializable]) {
-          storage.add(p.persistenceId, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
+          storage.add(p.persistenceId, p.sequenceNr, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
         }
         else {
           throw new NotSerializableException
@@ -96,7 +96,7 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
   def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = {
     Future {
       storage.get(persistenceId).foreach(stash => {
-        stash.seqNumbers.filter(_ <= toSequenceNr).foreach(stash.delete(_))
+        stash.ids.filter(_ <= toSequenceNr).foreach(stash.delete(_))
       })
     }
   }
@@ -114,9 +114,10 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
     }
 
     Future {
-      def inRange(value: Long) = value <= toSequenceNr && value >= fromSequenceNr
+      def inRange(journal: PersistedJournal) = Utils.inRange(journal.sequenceNr, fromSequenceNr, toSequenceNr)
+      def sort(l:PersistedJournal,r:PersistedJournal) = l.sequenceNr < r.sequenceNr
       storage.get(persistenceId).foreach(stash => {
-        stash.getOrdered.filter(j => inRange(j.sequenceNr)).take(maxInt).foreach(j => replay(j))
+        stash.select(inRange(_)).toIndexedSeq.sortWith(sort).take(maxInt).foreach(j => replay(j))
       })
     }
   }
@@ -125,7 +126,7 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
     log.debug("Read highest seqNr for id [{}] starting from [{}]", persistenceId, fromSequenceNr)
     Future {
       storage.get(persistenceId).map(stash => {
-        stash.seqNumbers.filter(_ >= fromSequenceNr).foldLeft(0L)((l, r) => { if (l > r) l else r })
+        stash.ids.filter(_ >= fromSequenceNr).foldLeft(0L)((l, r) => { if (l > r) l else r })
       }).getOrElse(0)
     }
   }

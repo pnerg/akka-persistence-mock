@@ -19,6 +19,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.collection.mutable.HashMap
 import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import akka.persistence.snapshot.SnapshotStore
+import Utils._
 
 /**
  * Represents a stored snapshot.
@@ -27,47 +28,7 @@ import akka.persistence.snapshot.SnapshotStore
  * @param state is data for the snapshot, can be anything.
  * @param timestamp the time stamp for when the snapshot was taken
  */
-case class PersistedSnap(sequenceNr: Long, timestamp: Long, state: Any)
-
-/**
- * The snapshot stash containing all snapshots for a single persistenceId.
- */
-class SnapshotStash {
-  val snapshots = HashMap[Long, PersistedSnap]()
-
-  def add(snap: PersistedSnap): Unit = snapshots.put(snap.sequenceNr, snap)
-
-  def select(c: SnapshotSelectionCriteria) = {
-    def seqNrInRange(seqNr: Long) = inRange(seqNr, c.minSequenceNr, c.maxSequenceNr)
-    def timeRange(seqNr: Long) = inRange(seqNr, c.minTimestamp, c.maxTimestamp)
-    snapshots.values.filter(s => seqNrInRange(s.sequenceNr)).filter(s => timeRange(s.timestamp))
-  }
-
-  def delete(sequenceNr: Long): Unit = snapshots.remove(sequenceNr)
-
-  private def inRange(value: Long, min: Long, max: Long) = value >= min && value <= max
-}
-
-/**
- * Storage for all snapshot stashes
- */
-class SnapshotStorage {
-  /** stores persistenceId -> Snapshot*/
-  val stashes = HashMap[String, SnapshotStash]()
-
-  def add(persistenceId: String, snap: PersistedSnap) {
-    stashes.get(persistenceId) match {
-      case Some(stash) => stash.add(snap)
-      case None => {
-        val stash = new SnapshotStash
-        stash.add(snap)
-        stashes.put(persistenceId, stash)
-      }
-    }
-  }
-
-  def get(persistenceId: String) = stashes.get(persistenceId)
-}
+private[persistence] case class PersistedSnap(sequenceNr: Long, timestamp: Long, state: Any) extends PersistedState
 
 /**
  * @author Peter Nerg
@@ -76,14 +37,15 @@ class SnapshotStorePlugin extends SnapshotStore {
 
   implicit val ec = ExecutionContext.global
 
-  val storage = new SnapshotStorage
+  val storage = new Storage[PersistedSnap]()
 
   def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
     log.debug("Load [{}] [{}]", persistenceId, criteria)
+      
     Future {
       //first find if there's a storage for the provided ID
       storage.get(persistenceId).flatMap(stash => {
-        val snap = stash.select(criteria).reduceOption((l, r) => if (l.sequenceNr > r.sequenceNr) l else r)
+        val snap = select(stash, criteria).reduceOption((l, r) => if (l.sequenceNr > r.sequenceNr) l else r)
         snap.map(s => SelectedSnapshot(SnapshotMetadata(persistenceId, s.sequenceNr, s.timestamp), s.state))
       })
     }
@@ -92,7 +54,7 @@ class SnapshotStorePlugin extends SnapshotStore {
   def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
     log.debug("Save [{}] [{}]", metadata, snapshot)
     Future {
-      storage.add(metadata.persistenceId, PersistedSnap(metadata.sequenceNr, metadata.timestamp, snapshot))
+      storage.add(metadata.persistenceId, metadata.sequenceNr, PersistedSnap(metadata.sequenceNr, metadata.timestamp, snapshot))
     }
   }
 
@@ -106,8 +68,14 @@ class SnapshotStorePlugin extends SnapshotStore {
     log.debug("Delete [{}] [{}]", persistenceId, criteria)
     Future {
       storage.get(persistenceId).foreach(stash => {
-        stash.select(criteria).foreach(snap => stash.delete(snap.sequenceNr))
+        select(stash, criteria).foreach(snap => stash.delete(snap.sequenceNr))
       })
     }
+  }
+  
+  private def select(stash: Stash[PersistedSnap], criteria: SnapshotSelectionCriteria) = {
+    def seqNrInRange(seqNr: Long) = inRange(seqNr, criteria.minSequenceNr, criteria.maxSequenceNr)
+    def timeRange(seqNr: Long) = inRange(seqNr, criteria.minTimestamp, criteria.maxTimestamp)
+    stash.select(s => seqNrInRange(s.sequenceNr)).filter(s => timeRange(s.timestamp))
   }
 }
