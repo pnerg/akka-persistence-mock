@@ -37,7 +37,7 @@ class ExampleSuite extends TestKit(ActorSystem("ExampleSuite", PersistenceSuiteT
   // Makes sure that the actor system is shut down.
   override def afterAll() { system.terminate }
 
-  def createAccount(name: String) = system.actorOf(AccountActor.props(name), name)
+  def createAccount(name: String) = system.actorOf(AccountActor.props(name), name+"-"+System.currentTimeMillis())
   
   "ExampleSuite" should {
     "Create and use account" in new ExampleSuite {
