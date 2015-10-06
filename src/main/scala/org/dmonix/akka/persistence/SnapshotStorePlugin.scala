@@ -56,7 +56,7 @@ class SnapshotStorePlugin extends SnapshotStore {
   def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
     log.debug("Save [{}] [{}]", metadata, snapshot)
     Future {
-      storage.add(metadata.persistenceId, metadata.sequenceNr, PersistedSnap(metadata.sequenceNr, metadata.timestamp, snapshot))
+      storage.add(metadata.persistenceId)(metadata.sequenceNr, PersistedSnap(metadata.sequenceNr, metadata.timestamp, snapshot))
     }
   }
 

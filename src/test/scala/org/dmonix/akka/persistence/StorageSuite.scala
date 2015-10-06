@@ -47,7 +47,7 @@ class StorageSuite extends FunSuite {
   }
   
   test("Test add with one") {
-    storage.add("ID1", 1, MockPersistedState(1, "Hello"))
+    storage.add("ID1")(1, MockPersistedState(1, "Hello"))
     assert(storage.get("ID1").isDefined)
   }
 

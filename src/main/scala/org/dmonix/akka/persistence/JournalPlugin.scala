@@ -103,7 +103,7 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
    */
   private def persist(p: PersistentRepr): Unit = {
     if (p.payload.isInstanceOf[Serializable] || p.payload.isInstanceOf[java.io.Serializable]) {
-      storage.add(p.persistenceId, p.sequenceNr, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
+      storage.add(p.persistenceId)(p.sequenceNr, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
     } else {
       throw new NotSerializableException
     }

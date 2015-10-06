@@ -64,7 +64,7 @@ private[persistence] class Storage[T <: PersistedState] {
   /** stores persistenceId -> Snapshot*/
   private val stashes = HashMap[String, Stash[T]]()
 
-  def add(persistenceId: String, id: Long, snap: T) {
+  def add(persistenceId: String)(id: Long, snap: T) {
     stashes.get(persistenceId) match {
       case Some(stash) => stash.add(id, snap)
       case None => {
