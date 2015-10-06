@@ -16,6 +16,7 @@
 package org.dmonix.akka.persistence
 
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.MutableList
 
 /**
  * Utility/helper methods.
@@ -37,19 +38,21 @@ private[persistence] trait PersistedState
 
 /**
  * A data stash containing a id -> data mapping. <br>
- * Used both to store journal/transactions as well as snapshots for a single actor instance.
+ * Used both to store journal/transactions as well as snapshots for a single actor instance. <br>
+ * The order of the data is kept by always appending the journal/snapshot to the end of the list. <br>
+ * A single actor can only persist one state at a time so this approach is safe.
  * @author Peter Nerg
  */
 private[persistence] class Stash[S <: PersistedState] {
-  private val stateStore = HashMap[Long, S]()
+  private var stashedState = List[(Long, S)]()
 
-  def add(id: Long, state: S): Unit = stateStore.put(id, state)
+  def add(id: Long, state: S): Unit = stashedState = stashedState :+ (id, state)
 
-  def delete(id: Long): Unit = stateStore.remove(id)
+  def delete(id: Long): Unit = stashedState = stashedState.filterNot(_._1 == id)
   
-  def select(filter: S => Boolean) = stateStore.values.filter(filter)
+  def select(criteria: S => Boolean) = stashedState.filter(t => criteria(t._2)).map(_._2)
   
-  def ids() = stateStore.keys
+  def ids() = stashedState.map(_._1)
 }
 
 /**
