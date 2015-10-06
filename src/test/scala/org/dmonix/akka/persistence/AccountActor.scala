@@ -67,7 +67,7 @@ class Account(balance: Integer) {
 }
 
 /**
- * Compantion object to AccountActor
+ * Companion object to AccountActor
  * @author Peter Nerg
  */
 object AccountActor {
