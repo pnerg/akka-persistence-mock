@@ -16,8 +16,7 @@
  package org.dmonix.akka
 
 /**
+ * Contains the implementation of the Akka persistence plugins. 
  * @author Peter Nerg
  */
-package object persistence {
-  
-}
+package object persistence

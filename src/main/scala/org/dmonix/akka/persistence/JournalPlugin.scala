@@ -27,60 +27,27 @@ import scala.util.Success
 import scala.util.Failure
 import java.io.NotSerializableException
 
-case class PersistedJournal(sequenceNr: Long, manifest: String, writerUuid: String, msg: Any) extends PersistedState
-
-//class JournalStash {
-//
-//  val journals = new HashMap[Long, PersistedJournal]()
-//
-//  def add(journal: PersistedJournal) {
-//    journals.put(journal.sequenceNr, journal)
-//  }
-//
-//  def getOrdered = journals.valuesIterator.toIndexedSeq.sortWith((l, r) => l.sequenceNr < r.sequenceNr)
-//
-//  def seqNumbers = journals.keys
-//
-//  def delete(sequenceNr: Long) = journals.remove(sequenceNr)
-//}
-
-//class JournalStorage {
-//  val stashes = HashMap[String, JournalStash]()
-//
-//  def add(persistenceId: String, journal: PersistedJournal) = {
-//    stashes.get(persistenceId) match {
-//      case Some(stash) => stash.add(journal)
-//      case None => {
-//        val stash = new JournalStash
-//        stash.add(journal)
-//        stashes.put(persistenceId, stash)
-//      }
-//    }
-//
-//  }
-//
-//  def get(persistenceId: String) =  stashes.get(persistenceId)
-//}
+/**
+ * Represents a persisted journal/transaction
+ * @constructor Creates a new instance of this persisted journal.
+ * @param sequenceNr The sequence number for this transaction/journal
+ * @param manifest The manifest for this transaction/journal
+ * @param writerUuid The writer UUID for this transaction/journal
+ * @param msg The actual message for this transaction/journal
+ */
+private[persistence] case class PersistedJournal(sequenceNr: Long, manifest: String, writerUuid: String, msg: Any) extends PersistedState
 
 /**
+ * The implementation of the journal/transaction persistence plugin. <br>
+ * All journals are kept in memory and will not survive a restart.
  * @author Peter Nerg
  */
 class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLogging {
 
-  implicit val ec = ExecutionContext.global
-  val storage = new Storage[PersistedJournal]
+  private implicit val ec = ExecutionContext.global
+  private val storage = new Storage[PersistedJournal]
 
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
-
-    def persist(p: PersistentRepr):Unit = {
-        if (p.payload.isInstanceOf[Serializable] || p.payload.isInstanceOf[java.io.Serializable]) {
-          storage.add(p.persistenceId, p.sequenceNr, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
-        }
-        else {
-          throw new NotSerializableException
-        }
-    }
-    
     Future {
       var response = List[Try[Unit]]()
       messages.foreach(_.payload.foreach { p =>
@@ -115,7 +82,7 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
 
     Future {
       def inRange(journal: PersistedJournal) = Utils.inRange(journal.sequenceNr, fromSequenceNr, toSequenceNr)
-      def sort(l:PersistedJournal,r:PersistedJournal) = l.sequenceNr < r.sequenceNr
+      def sort(l: PersistedJournal, r: PersistedJournal) = l.sequenceNr < r.sequenceNr
       storage.get(persistenceId).foreach(stash => {
         stash.select(inRange(_)).toIndexedSeq.sortWith(sort).take(maxInt).foreach(j => replay(j))
       })
@@ -130,4 +97,16 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
       }).getOrElse(0)
     }
   }
+
+  /**
+   * Attempts to persist the provided data.
+   */
+  private def persist(p: PersistentRepr): Unit = {
+    if (p.payload.isInstanceOf[Serializable] || p.payload.isInstanceOf[java.io.Serializable]) {
+      storage.add(p.persistenceId, p.sequenceNr, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
+    } else {
+      throw new NotSerializableException
+    }
+  }
+
 }

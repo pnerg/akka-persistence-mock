@@ -31,13 +31,15 @@ import Utils._
 private[persistence] case class PersistedSnap(sequenceNr: Long, timestamp: Long, state: Any) extends PersistedState
 
 /**
+ * The implementation of the snapshot persistence plugin. <br>
+ * All snapshots are kept in memory and will not survive a restart.
  * @author Peter Nerg
  */
 class SnapshotStorePlugin extends SnapshotStore {
 
-  implicit val ec = ExecutionContext.global
+  private implicit val ec = ExecutionContext.global
 
-  val storage = new Storage[PersistedSnap]()
+  private val storage = new Storage[PersistedSnap]()
 
   def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
     log.debug("Load [{}] [{}]", persistenceId, criteria)
@@ -73,6 +75,9 @@ class SnapshotStorePlugin extends SnapshotStore {
     }
   }
   
+  /**
+   * Selects a number of snapshots based on the provided critera.
+   */
   private def select(stash: Stash[PersistedSnap], criteria: SnapshotSelectionCriteria) = {
     def seqNrInRange(seqNr: Long) = inRange(seqNr, criteria.minSequenceNr, criteria.maxSequenceNr)
     def timeRange(seqNr: Long) = inRange(seqNr, criteria.minTimestamp, criteria.maxTimestamp)

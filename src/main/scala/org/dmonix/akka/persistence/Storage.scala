@@ -17,13 +17,30 @@ package org.dmonix.akka.persistence
 
 import scala.collection.mutable.HashMap
 
-object Utils {
+/**
+ * Utility/helper methods.
+ */
+private[persistence] object Utils {
+  /**
+   * Simple helper method to determine of a value is the expected range.
+   * @param value The value to check
+   * @param min The expected minimum (inclusive) value
+   * @param min The expected maximum (inclusive) value
+   */
   def inRange(value: Long, min: Long, max: Long) = value >= min && value <= max
 }
 
-trait PersistedState
+/**
+ * Trait for marking persistent data types
+ */
+private[persistence] trait PersistedState
 
-class Stash[S <: PersistedState] {
+/**
+ * A data stash containing a id -> data mapping. <br>
+ * Used both to store journal/transactions as well as snapshots for a single actor instance.
+ * @author Peter Nerg
+ */
+private[persistence] class Stash[S <: PersistedState] {
   private val stateStore = HashMap[Long, S]()
 
   def add(id: Long, state: S): Unit = stateStore.put(id, state)
@@ -36,14 +53,13 @@ class Stash[S <: PersistedState] {
 }
 
 /**
+ * Storage for all data stashes. <br>
+ * Contains a mapping of actor (persistenceId) -> data stash.
  * @author Peter Nerg
- */
-/**
- * Storage for all snapshot stashes
  */
 private[persistence] class Storage[T <: PersistedState] {
   /** stores persistenceId -> Snapshot*/
-  val stashes = HashMap[String, Stash[T]]()
+  private val stashes = HashMap[String, Stash[T]]()
 
   def add(persistenceId: String, id: Long, snap: T) {
     stashes.get(persistenceId) match {
