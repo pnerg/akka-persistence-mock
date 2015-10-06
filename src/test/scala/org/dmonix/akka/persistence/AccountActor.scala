@@ -25,26 +25,49 @@ case class Withdraw(sum: Integer)
 case class Balance(sum: Integer = 0)
 case object Snap
 
+/**
+ * Companion object to Account.
+ */
 object Account {
   def apply(balance: Integer) = new Account(balance)
 }
 
+/**
+ * Represents an account.
+ * @constructor Creates an account instance
+ * @param balance The initial balance of the account.
+ */
 class Account(balance: Integer) {
 
+  /**
+   * Deposits a sum to the account.
+   * @param The sum to deposit
+   * @return A new account instance holding the new balance
+   */
   def deposit(sum: Integer) = {
     Account(balance + sum)
   }
 
+  /**
+   * Withdraws a sum from the account.
+   * @param The sum to withdraw
+   * @return A new account instance holding the new balance
+   */
   def withdraw(sum: Integer) = {
     Account(balance - sum)
   }
 
+  /**
+   * Requests the balance from the account.
+   * @return The current balance
+   */
   def balance(): Integer = balance
 
   override def toString = String.valueOf(balance)
 }
 
 /**
+ * Compantion object to AccountActor
  * @author Peter Nerg
  */
 object AccountActor {
@@ -52,10 +75,14 @@ object AccountActor {
 }
 
 /**
+ * Exemplifies a persistent actor by mimicking a bank account. <br>
+ * Each actor instance represents an account for a person.
  * @author Peter Nerg
+ * @constructor Creates the account instance
+ * @param The name of the person holding the account
  */
-class AccountActor(id: String) extends PersistentActor with ActorLogging {
-  override def persistenceId = id
+class AccountActor(name: String) extends PersistentActor with ActorLogging {
+  override def persistenceId = name
   var account = Account(0)
 
   private def deposit(evt: Deposit) {
