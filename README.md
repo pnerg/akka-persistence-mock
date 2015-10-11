@@ -21,7 +21,7 @@ It's now you probably want a lightweight in-memory implementation of the persist
 ## How to use
 Since testing is the primary use case there's a few ways to configure the plugin.  
 Basically what you need is to add the plugin configuration to the actor system.
-```json
+```
 akka.persistence.journal.plugin = "dummy-journal"
 akka.persistence.snapshot-store.plugin = "dummy-snapshot-store"
 
