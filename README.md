@@ -6,7 +6,7 @@ Mock implementation of Akka persistence suitable for testing.
 ## What's this
 "_Akka persistence enables stateful actors to persist their internal state so that it can be recovered when an actor is started, restarted after a JVM crash or by a supervisor, or migrated in a cluster_"
 /[akka persistence (Typesafe)](http://doc.akka.io/docs/akka/2.4.0-RC3/scala/persistence.html)  
-Whilst the actual persistence mechanism of the Akka platfrom is generic it allows you to define which storage plugin to use, i.e. where to store the snapshot and journal/transaction data.  
+Whilst the actual persistence mechanism of the Akka platform is generic it allows you to define which storage plugin to use, i.e. where to store the snapshot and journal/transaction data.  
   
 This project implements both the _Journal_ and _SnapshotStore_ plugins as in-memory structures. I.e. no data is written/persisted anywhere. This of course means that this implementation is not suitable for production but excellent for testing. There's no dependencies to anything like disc space or external databases meaning that the plugin requires no configuration to be used. It makes it extremely efficient to instantiate and use in testing adding virtually zero overhead.
 
