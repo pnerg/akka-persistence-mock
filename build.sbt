@@ -2,7 +2,7 @@ name := "akka-persistence-mock"
 organization := "org.dmonix.akka"
 version := "1.1-SNAPSHOT"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
 val akkaVersion = "2.4-M3"
 
