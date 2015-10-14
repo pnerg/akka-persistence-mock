@@ -80,7 +80,6 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
 
     Future {
       def inRange(journal: PersistedJournal) = Utils.inRange(journal.sequenceNr, fromSequenceNr, toSequenceNr)
-      def sort(l: PersistedJournal, r: PersistedJournal) = l.sequenceNr < r.sequenceNr
       storage.get(persistenceId).foreach(stash => {
         stash.select(inRange(_)).take(maxInt).foreach(replay(_))
       })
@@ -101,7 +100,7 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
    */
   private def persist(aw: AtomicWrite): Unit = {
     aw.payload.foreach(p => {
-      if (p.payload.isInstanceOf[Serializable] || p.payload.isInstanceOf[java.io.Serializable]) {
+      if (p.payload.isInstanceOf[java.io.Serializable]) {
         log.debug("Persist event [{}]", p)
         storage.add(p.persistenceId)(p.sequenceNr, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
       } else {
