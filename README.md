@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/pnerg/akka-persistence-mock.svg?branch=master)](https://travis-ci.org/pnerg/akka-persistence-mock) [![codecov.io](http://codecov.io/github/pnerg/akka-persistence-mock/coverage.svg?branch=master)](http://codecov.io/github/pnerg/akka-persistence-mock?branch=master)   
 
 # Akka Persistence Mock
-Mock implementation of Akka persistence suitable for testing.
+Mock/in-memory implementation of Akka persistence suitable for testing your persistent Actors.
 
 ## What's this
 "_Akka persistence enables stateful actors to persist their internal state so that it can be recovered when an actor is started, restarted after a JVM crash or by a supervisor, or migrated in a cluster_"
