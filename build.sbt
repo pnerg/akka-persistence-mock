@@ -4,7 +4,7 @@ version := "1.1-SNAPSHOT"
 
 scalaVersion := "2.11.7"
 
-val akkaVersion = "2.4-M3"
+val akkaVersion = "2.4.0"
 
 
 scalacOptions <++= scalaVersion map { (v: String) => 
