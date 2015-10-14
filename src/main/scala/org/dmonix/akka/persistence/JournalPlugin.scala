@@ -50,11 +50,9 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
   def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
     Future {
       var response = List[Try[Unit]]()
-      messages.foreach(_.payload.foreach { p =>
-        log.debug("Persist event [{}]", p)
+      messages.foreach(aw =>
         response = response :+ Try {
-          persist(p)
-        }
+          persist(aw)
       })
       response
     }
@@ -101,12 +99,15 @@ class JournalPlugin extends AsyncWriteJournal with AsyncRecovery with ActorLoggi
   /**
    * Attempts to persist the provided data.
    */
-  private def persist(p: PersistentRepr): Unit = {
-    if (p.payload.isInstanceOf[Serializable] || p.payload.isInstanceOf[java.io.Serializable]) {
-      storage.add(p.persistenceId)(p.sequenceNr, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
-    } else {
-      throw new NotSerializableException
-    }
+  private def persist(aw: AtomicWrite): Unit = {
+    aw.payload.foreach(p => {
+      if (p.payload.isInstanceOf[Serializable] || p.payload.isInstanceOf[java.io.Serializable]) {
+        log.debug("Persist event [{}]", p)
+        storage.add(p.persistenceId)(p.sequenceNr, PersistedJournal(p.sequenceNr, p.manifest, p.writerUuid, p.payload))
+      } else {
+        throw new NotSerializableException
+      }
+    })
   }
 
 }
