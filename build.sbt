@@ -1,6 +1,6 @@
 name := "akka-persistence-mock"
 organization := "org.dmonix.akka"
-version := "1.1-SNAPSHOT"
+version := "1.1"
 
 scalaVersion := "2.11.7"
 
