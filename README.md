@@ -71,14 +71,14 @@ class ExampleSuite extends TestKit(ActorSystem("ExampleSuite", PersistenceSuite.
 Check out the [Example suite class](https://github.com/pnerg/akka-persistence-mock/blob/master/src/test/scala/org/dmonix/akka/persistence/ExampleSuite.scala)
 
 ## Download
-The binary can be downloaded from [Maven Central](http://search.maven.org/#artifactdetails|org.dmonix.akka|akka-persistence-mock_2.11|1.0|).
+The binary can be downloaded from [Maven Central](http://search.maven.org/#artifactdetails|org.dmonix.akka|akka-persistence-mock_2.11|1.1|).
 
 sbt
 ```
-libraryDependencies += "org.dmonix.akka" % "akka-persistence-mock_2.11" % "1.0"
+libraryDependencies += "org.dmonix.akka" % "akka-persistence-mock_2.11" % "1.1"
 ```
 ```
-libraryDependencies += "org.dmonix.akka" %% "akka-persistence-mock" % "1.0"
+libraryDependencies += "org.dmonix.akka" %% "akka-persistence-mock" % "1.1"
 ```
 
 Maven
@@ -86,7 +86,7 @@ Maven
 <dependency>
     <groupId>org.dmonix.akka</groupId>
     <artifactId>akka-persistence-mock_2.11</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
 </dependency>
 ```
 
