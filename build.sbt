@@ -25,7 +25,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
   "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
   "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
-  "org.slf4j" % "slf4j-log4j12" % "1.7.5",
   "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test", 
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-persistence-tck" % akkaVersion % "test"
