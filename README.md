@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/pnerg/akka-persistence-mock.svg?branch=master)](https://travis-ci.org/pnerg/akka-persistence-mock) [![codecov.io](http://codecov.io/github/pnerg/akka-persistence-mock/coverage.svg?branch=master)](http://codecov.io/github/pnerg/akka-persistence-mock?branch=master)   
+[![Build Status](https://travis-ci.org/pnerg/akka-persistence-mock.svg?branch=master)](https://travis-ci.org/pnerg/akka-persistence-mock) [![codecov.io](http://codecov.io/github/pnerg/akka-persistence-mock/coverage.svg?branch=master)](http://codecov.io/github/pnerg/akka-persistence-mock?branch=master) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.dmonix.akka/akka-persistence-mock_2.11/badge.svg?style=plastic)](https://maven-badges.herokuapp.com/maven-central/org.dmonix.akka/akka-persistence-mock_2.11)
+[![Scaladoc](http://javadoc-badge.appspot.com/org.dmonix.akka/akka-persistence-mock_2.11.svg?label=scaladoc)](http://javadoc-badge.appspot.com/org.dmonix.akka/akka-persistence-mock_2.11)  
+  
 
 # Akka Persistence Mock
 Mock/in-memory implementation of Akka persistence suitable for testing your persistent Actors.  
