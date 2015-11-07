@@ -91,10 +91,10 @@ The binary can be downloaded from [Maven Central](http://search.maven.org/#artif
 
 sbt
 ```
-libraryDependencies += "org.dmonix.akka" % "akka-persistence-mock_2.11" % "1.1"
+libraryDependencies += "org.dmonix.akka" % "akka-persistence-mock_2.11" % "1.1.1"
 ```
 ```
-libraryDependencies += "org.dmonix.akka" %% "akka-persistence-mock" % "1.1"
+libraryDependencies += "org.dmonix.akka" %% "akka-persistence-mock" % "1.1.1"
 ```
 
 Maven
@@ -102,7 +102,7 @@ Maven
 <dependency>
     <groupId>org.dmonix.akka</groupId>
     <artifactId>akka-persistence-mock_2.11</artifactId>
-    <version>1.1</version>
+    <version>1.1.1</version>
 </dependency>
 ```
 
