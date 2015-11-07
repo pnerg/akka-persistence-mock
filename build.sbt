@@ -1,11 +1,10 @@
 name := "akka-persistence-mock"
 organization := "org.dmonix.akka"
-version := "1.1.1-SNAPSHOT"
+version := "1.1.1"
 
 scalaVersion := "2.11.7"
 
 val akkaVersion = "2.4.0"
-
 
 scalacOptions <++= scalaVersion map { (v: String) => 
   if (v.trim.startsWith("2.1"))
