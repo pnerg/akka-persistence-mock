@@ -89,7 +89,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 ## Download
-The binary can be downloaded from [Maven Central](http://search.maven.org/#artifactdetails|org.dmonix.akka|akka-persistence-mock_2.11|1.1|).
+The binary can be downloaded from [Maven Central](http://search.maven.org/#artifactdetails|org.dmonix.akka|akka-persistence-mock_2.11|1.1.1|).
 
 sbt
 ```
