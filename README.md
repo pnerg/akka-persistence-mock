@@ -4,7 +4,7 @@
 
 # Akka Persistence Mock
 Mock/in-memory implementation of Akka persistence suitable for testing your persistent Actors.  
-This plugin implement both the Journal as well as the SnapshotStore.
+This plugin implements both the Journal as well as the SnapshotStore.
 
 ## What's this
 "_Akka persistence enables stateful actors to persist their internal state so that it can be recovered when an actor is started, restarted after a JVM crash or by a supervisor, or migrated in a cluster_"
